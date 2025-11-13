@@ -3,10 +3,10 @@ import { NavLink, useLocation, useSearchParams } from 'react-router-dom';
 export const Navbar = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  
+
   // Перевіряємо чи активна сторінка People (включаючи /people/:slug)
   const isPeopleActive = location.pathname.startsWith('/people');
-  
+
   // Зберігаємо поточні search параметри для People
   const searchString = searchParams.toString();
   const peopleLink = searchString ? `/people?${searchString}` : '/people';

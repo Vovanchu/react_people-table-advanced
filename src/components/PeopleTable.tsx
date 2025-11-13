@@ -234,7 +234,12 @@ export const PeopleTable = ({ persons }: PeopleTableProps) => {
 
               <td>
                 {highlightName(person.motherName) && mother ? (
-                  <PersonLink person={mother} className={person.motherName === motherName ? 'has-text-danger' : ''}/>
+                  <PersonLink
+                    person={mother}
+                    className={
+                      person.motherName === motherName ? 'has-text-danger' : ''
+                    }
+                  />
                 ) : (
                   person.motherName || '-'
                 )}

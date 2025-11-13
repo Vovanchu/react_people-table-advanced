@@ -1,21 +1,14 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { getPeople } from '../api';
 import { Person } from '../types/Person';
-
 import { PeopleFilters } from './PeopleFilters';
 import { Loader } from './Loader';
 import { PeopleTable } from './PeopleTable';
-
-import SexFilter from '../types/SexFilter';
 
 export const PeoplePage = () => {
   const [persons, setPersons] = useState<Person[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
-
-  const [sexFilter, setSexFilter] = useState<SexFilter>('all');
-  const [inputFilterText, setInputFilterText] = useState<string>('');
-  const [centuriesFilter, setCenturiesFilter] = useState<string[]>([]);
 
   useEffect(() => {
     setLoading(true);
@@ -26,34 +19,6 @@ export const PeoplePage = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const filteredPersons = useMemo(() => {
-    return persons.filter(p => {
-      if (sexFilter !== 'all' && p.sex !== sexFilter) {
-        return false;
-      }
-
-      if (
-        inputFilterText &&
-        !p.name?.toLowerCase().includes(inputFilterText.toLowerCase())
-      ) {
-        return false;
-      }
-
-      if (centuriesFilter.length > 0) {
-        const century = Math.ceil(p.born / 100).toString();
-
-        if (!centuriesFilter.includes(century)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [persons, sexFilter, inputFilterText, centuriesFilter]);
-
-  const errorFinding =
-    filteredPersons.length === 0 && inputFilterText.trim() !== '';
-
   return (
     <>
       <h1 className="title">People Page</h1>
@@ -62,14 +27,7 @@ export const PeoplePage = () => {
         <div className="columns is-desktop is-flex-direction-row-reverse">
           {!loading && !error ? (
             <div className="column is-7-tablet is-narrow-desktop">
-              <PeopleFilters
-                sexFilter={sexFilter}
-                setSexFilter={setSexFilter}
-                centuriesFilter={centuriesFilter}
-                setCenturiesFilter={setCenturiesFilter}
-                inputFilterText={inputFilterText}
-                setInputFilterText={setInputFilterText}
-              />
+              <PeopleFilters />
             </div>
           ) : null}
 
@@ -87,18 +45,8 @@ export const PeoplePage = () => {
                 </p>
               )}
 
-              {errorFinding ? (
-                <p>There are no people matching the current search criteria</p>
-              ) : (
-                !loading &&
-                !error && (
-                  <PeopleTable
-                    persons={filteredPersons}
-                    sexFilter={sexFilter}
-                    inputFilterText={inputFilterText}
-                    centuriesFilter={centuriesFilter}
-                  />
-                )
+              {!loading && !error && persons.length > 0 && (
+                <PeopleTable persons={persons} />
               )}
 
               {loading && <Loader />}
