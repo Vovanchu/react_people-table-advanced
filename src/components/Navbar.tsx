@@ -1,6 +1,16 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation, useSearchParams } from 'react-router-dom';
 
 export const Navbar = () => {
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  
+  // Перевіряємо чи активна сторінка People (включаючи /people/:slug)
+  const isPeopleActive = location.pathname.startsWith('/people');
+  
+  // Зберігаємо поточні search параметри для People
+  const searchString = searchParams.toString();
+  const peopleLink = searchString ? `/people?${searchString}` : '/people';
+
   return (
     <nav
       data-cy="nav"
@@ -20,10 +30,8 @@ export const Navbar = () => {
           </NavLink>
 
           <NavLink
-            to="/people"
-            className={({ isActive }) =>
-              `navbar-item ${isActive ? 'has-background-grey-lighter' : ''}`
-            }
+            to={peopleLink}
+            className={`navbar-item ${isPeopleActive ? 'has-background-grey-lighter' : ''}`}
           >
             People
           </NavLink>

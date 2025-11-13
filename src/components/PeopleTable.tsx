@@ -1,29 +1,27 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Person } from '../types/Person';
 import cn from 'classnames';
 import SexFilter from '../types/SexFilter';
-import { Link, useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { PersonLink } from './PersonLink';
+import { SearchLink } from './SearchLink';
 
 type FilterTypesPeople = 'name' | 'sex' | 'born' | 'died';
-type SortOrder = 'none' | 'asc' | 'desc';
 
 type PeopleTableProps = {
   persons: Person[];
-  sexFilter: SexFilter;
-  inputFilterText: string;
-  centuriesFilter: string[];
 };
 
-export const PeopleTable = ({
-  persons,
-  sexFilter,
-  inputFilterText,
-  centuriesFilter,
-}: PeopleTableProps) => {
-  const [sortBy, setSortBy] = useState<FilterTypesPeople | null>(null);
-  const [sortOrder, setSortOrder] = useState<SortOrder>('none');
+export const PeopleTable = ({ persons }: PeopleTableProps) => {
   const { slug } = useParams<{ slug?: string }>();
+  const [searchParams] = useSearchParams();
+
+  // Читаємо всі параметри з URL
+  const sortBy = searchParams.get('sort') as FilterTypesPeople | null;
+  const sortOrder = searchParams.get('order') || 'asc';
+  const sexFilter = (searchParams.get('sex') as SexFilter) || 'all';
+  const inputFilterText = searchParams.get('query') || '';
+  const centuriesFilter = searchParams.getAll('centuries');
 
   const byName = useMemo(
     () => new Map(persons.map(p => [p.name, p] as const)),
@@ -47,35 +45,9 @@ export const PeopleTable = ({
     [nameSet],
   );
 
-  const handleSort = useCallback(
-    (filterType: FilterTypesPeople) => {
-      if (sortBy !== filterType) {
-        setSortBy(filterType);
-        setSortOrder('asc');
-
-        return;
-      }
-
-      setSortOrder(prevOrder => {
-        if (prevOrder === 'asc') {
-          return 'desc';
-        }
-
-        if (prevOrder === 'desc') {
-          setSortBy(null);
-
-          return 'none';
-        }
-
-        return 'asc';
-      });
-    },
-    [sortBy],
-  );
-
   const getSortIcon = useCallback(
     (filterType: FilterTypesPeople) => {
-      if (sortBy !== filterType || sortOrder === 'none') {
+      if (sortBy !== filterType) {
         return 'fas fa-sort';
       }
 
@@ -85,7 +57,7 @@ export const PeopleTable = ({
   );
 
   const sortedPeople = useMemo(() => {
-    if (!sortBy || sortOrder === 'none') {
+    if (!sortBy) {
       return persons;
     }
 
@@ -131,31 +103,41 @@ export const PeopleTable = ({
     });
   }, [persons, sortBy, sortOrder]);
 
-  const getSortLink = (filterType: FilterTypesPeople) => {
-    if (sortBy !== filterType || sortOrder === 'none') {
-      return '#/people';
+  const getSortParams = (filterType: FilterTypesPeople) => {
+    if (sortBy !== filterType) {
+      // Встановлюємо нове сортування з порядком 'asc'
+      return { sort: filterType, order: 'asc' };
     }
 
     if (sortOrder === 'asc') {
-      return `#/people?sort=${filterType}`;
+      // Змінюємо на 'desc'
+      return { sort: filterType, order: 'desc' };
     }
 
-    return `#/people?sort=${filterType}&order=desc`;
+    // Скидаємо сортування
+    return { sort: null, order: null };
   };
 
   const filterTable = useMemo(() => {
     return sortedPeople.filter(p => {
+      // Фільтр по статі
       if (sexFilter !== 'all' && p.sex !== sexFilter) {
         return false;
       }
 
-      if (
-        inputFilterText &&
-        !p.name?.toLowerCase().includes(inputFilterText.toLowerCase())
-      ) {
-        return false;
+      // Фільтр по імені (шукаємо в name, motherName, fatherName)
+      if (inputFilterText) {
+        const query = inputFilterText.toLowerCase();
+        const matchesName = p.name?.toLowerCase().includes(query);
+        const matchesMotherName = p.motherName?.toLowerCase().includes(query);
+        const matchesFatherName = p.fatherName?.toLowerCase().includes(query);
+
+        if (!matchesName && !matchesMotherName && !matchesFatherName) {
+          return false;
+        }
       }
 
+      // Фільтр по століттях
       if (centuriesFilter.length > 0) {
         const century = Math.ceil(p.born / 100).toString();
 
@@ -176,58 +158,46 @@ export const PeopleTable = ({
       <thead>
         <tr>
           <th>
-            <span
-              className="is-flex is-flex-wrap-nowrap is-clickable"
-              onClick={() => handleSort('name')}
-            >
+            <span className="is-flex is-flex-wrap-nowrap">
               Name
-              <a href={getSortLink('name')}>
+              <SearchLink params={getSortParams('name')}>
                 <span className="icon">
                   <i className={getSortIcon('name')} />
                 </span>
-              </a>
+              </SearchLink>
             </span>
           </th>
 
           <th>
-            <span
-              className="is-flex is-flex-wrap-nowrap is-clickable"
-              onClick={() => handleSort('sex')}
-            >
+            <span className="is-flex is-flex-wrap-nowrap">
               Sex
-              <a href={getSortLink('sex')}>
+              <SearchLink params={getSortParams('sex')}>
                 <span className="icon">
                   <i className={getSortIcon('sex')} />
                 </span>
-              </a>
+              </SearchLink>
             </span>
           </th>
 
           <th>
-            <span
-              className="is-flex is-flex-wrap-nowrap is-clickable"
-              onClick={() => handleSort('born')}
-            >
+            <span className="is-flex is-flex-wrap-nowrap">
               Born
-              <a href={getSortLink('born')}>
+              <SearchLink params={getSortParams('born')}>
                 <span className="icon">
                   <i className={getSortIcon('born')} />
                 </span>
-              </a>
+              </SearchLink>
             </span>
           </th>
 
           <th>
-            <span
-              className="is-flex is-flex-wrap-nowrap is-clickable"
-              onClick={() => handleSort('died')}
-            >
+            <span className="is-flex is-flex-wrap-nowrap">
               Died
-              <a href={getSortLink('died')}>
+              <SearchLink params={getSortParams('died')}>
                 <span className="icon">
                   <i className={getSortIcon('died')} />
                 </span>
-              </a>
+              </SearchLink>
             </span>
           </th>
 
@@ -253,12 +223,10 @@ export const PeopleTable = ({
               className={cn({ 'has-background-warning': isSelected })}
             >
               <td>
-                <Link
-                  to={`/people/${person.slug ?? ''}`}
+                <PersonLink
+                  person={person}
                   className={person.sex === 'f' ? 'has-text-danger' : ''}
-                >
-                  {person.name}
-                </Link>
+                />
               </td>
               <td>{person.sex}</td>
               <td>{person.born}</td>
@@ -266,7 +234,7 @@ export const PeopleTable = ({
 
               <td>
                 {highlightName(person.motherName) && mother ? (
-                  <PersonLink person={mother} />
+                  <PersonLink person={mother} className={person.motherName === motherName ? 'has-text-danger' : ''}/>
                 ) : (
                   person.motherName || '-'
                 )}
